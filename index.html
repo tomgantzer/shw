@@ -1,56 +1,26 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Board Test</title>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Alloy</title>
 
-    <link href='https://fonts.googleapis.com/css?family=Raleway:400,300,600,700' rel='stylesheet' type='text/css'>
-    <link rel="stylesheet" type="text/css" href="css/style.css">
-    <link rel="stylesheet" type="text/css" href="css/roundslider.min.css">
+  <link href='https://fonts.googleapis.com/css?family=Raleway:400,300,600,700' rel='stylesheet' type='text/css'>
+  <link rel="stylesheet" type="text/css" href="css/style.css">
+  <link rel="stylesheet" type="text/css" href="css/rangeslider.css">
 
-    <script type="text/javascript" src="js/socket-client.js"></script>
-    <script type="text/javascript" src="js/jquery.js"></script>
-    <script type="text/javascript" src="js/roundslider.min.js"></script>
-    <script type="text/javascript" src="js/main.js"></script>
-  </head>
-  <body>
-   
-   <div id="green_led">
-      
-            <h1>Green LED</h1>
+  <script type="text/javascript" src="js/jquery.js"></script>
+  <script type="text/javascript" src="js/socket-client.js"></script>
+  <script type="text/javascript" src="js/main.js"></script>
+  <script type="text/javascript" src="js/rangeslider.js"></script>
+</head>
 
-            <div class="wrapper">
-              <input type="checkbox" name="checkbox-group" id="green-id" value="green"/>
-              <label for="green-id">Red</label>
-            </div>
-
-    </div>
-
-    <div id="blue_led">
-
-          <h1>Blue LED</h1>
-
-          <div class="wrapper">       
-              <input type="checkbox" name="checkbox-group" id="blue-id" value="blue"/>
-              <label for="blue-id">Blue</label>
-          </div>
-
-    </div>
-
-    <div id="blue_button">
-
-      <h1>Blue Button</h1>
-
-          <div class="wrapper">       
-              <input type="checkbox" name="checkbox-group" id="bluebtn-id" value="blue button"/>
-              <label for="bluebtn-id">Blue</label>
-          </div>
-
-
-    </div>
-       
-   
-  </body>
+<body>
+  <main>
+    <button id="button-up">+</button>
+    <input type="range" min="0" max="100" step="1" value="50" data-orientation="vertical">
+    <button id="button-down">-</button>
+  </main>
+</body>
 </html>
