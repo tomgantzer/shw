@@ -5,18 +5,18 @@ var express = require('express');
 var cors = require('cors');
 var app = express();
 var server = http.createServer(app);
-var io = require('socket.io')(server);
+var socketio = require('socket.io')(server);
 var bodyParser = require('body-parser');    // pull information from HTML POST (express4)
 var methodOverride = require('method-override'); // simulate DELETE and PUT (express4)
 var unirest = require('unirest');
 var five = require("johnny-five");
-var Particle = require("particle-io");
 var LifxClient = require('node-lifx').Client;
 var light = new LifxClient();
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
+var Particle = require("particle-io");
 
-// CONFIG VARIABLES
+// BOARD SETUP
 var arduinos = [
   {
     id: "ultrasonic",
@@ -25,13 +25,22 @@ var arduinos = [
   {
     id: "pressure",
     port: "/dev/cu.usbmodem1421"
+  },
+  {
+    id: "particle",
+    io: new Particle({
+      token: "1059f47f854fca3cd19ccb2b050f8f31d0b227e8",
+      deviceId: "38001b000447353138383138"
+    })
   }
 ];
 var boards = new five.Boards(arduinos);
 
+// CONFIGURATION
 var port = 8080;
 var brightness = 0;
 var delay = 120;
+
 var aylaEmail = "tom.gantzer@thealloy.com";
 var aylaPass = "Chicago1TG";
 var aylaURL = "https://user.aylanetworks.com/users/sign_in.json";
@@ -79,9 +88,8 @@ server.listen(port);
 console.log('Server available at ' + 'http://localhost:' + port);
 
 // LETS DO THIS!
-//EventEmitter.defaultMaxListeners = 0;
-
 boards.on("ready", function() {
+  console.log("All boards connected.");
   // SENSOR SETUP
   var proximity = new five.Proximity({
     board: this.byId("ultrasonic"),
@@ -90,10 +98,49 @@ boards.on("ready", function() {
     freq: delay
   });
 
+  // var particleProx = new five.Proximity({
+  //   board: this.byId("particle"),
+  //   controller: "HCSR04",
+  //   pin: "D7",
+  //   freq: delay
+  // });
+
+  var tilt1 = new five.Sensor({
+    board: this.byId("particle"),
+    type: "digital",
+    pin: "D0"
+  });
+
+  var tilt2 = new five.Sensor({
+    board: this.byId("particle"),
+    type: "digital",
+    pin: "D1"
+  });
+
+  var tilt3 = new five.Sensor({
+    board: this.byId("particle"),
+    type: "digital",
+    pin: "D2"
+  });
+
+  var tilt4 = new five.Sensor({
+    board: this.byId("particle"),
+    type: "digital",
+    pin: "D3"
+  });
+
   var mat = new five.Button({
     board: this.byId("pressure"),
     pin: 2,
     isPullup: true
+  });
+
+  var accel = new five.Accelerometer({
+    board: this.byId("particle"),
+    pins: ["A0", "A1", "A2"],
+    sensitivity: 128,
+    // zeroV: 478,
+    zeroV: 330
   });
 
   var motion = new five.Motion({
@@ -103,6 +150,7 @@ boards.on("ready", function() {
   });
 
   // SENSOR LOGIC
+
   light.on('light-new', function(bulb) {
 
     bulb.getState(function(error, data){
@@ -116,7 +164,7 @@ boards.on("ready", function() {
         brightness = 100 - brightness;
         console.log("Range:  " + brightness);
         bulb.color(0, 100, brightness, 3500, delay, function() {
-          io.in('clients').emit("ui update", brightness);
+          socketio.in('clients').emit("ui update", brightness);
         });
       }
     });
@@ -150,13 +198,51 @@ boards.on("ready", function() {
       bulb.off();
     });
 
+    tilt1.on("change", function() {
+      console.log("1 TILTED!!!!");
+    });
+    tilt2.on("change", function() {
+      console.log("2 TILTED!!!!");
+    });
+    tilt3.on("change", function() {
+      console.log("3 TILTED!!!!");
+    });
+    tilt4.on("change", function() {
+      console.log("4 TILTED!!!!");
+    });
 
+    // accel.on("orientation", function(data) {
+    //   console.log("orientation", data);
+    // });
   });
 
   light.init();
 });
 
-io.on('connection', function(socket){
+  // PARTICLE CONNECTIONS
+
+// particleBoard.on("ready", function() {
+//   console.log("particle connected.");
+//   // SENSOR SETUP
+//   var particleProx = new five.Proximity({
+//     controller: "HCSR04",
+//     pin: 7,
+//     freq: delay
+//   });
+//
+//   // SENSOR LOGIC
+//   particleProx.on("data", function() {
+//       // brightness = Math.min(Math.max(parseInt(this.cm), 0), 100);
+//       // brightness = 100 - brightness;
+//       console.log("Particle Range:  " + this.cm);
+//       // bulb.color(0, 100, brightness, 3500, delay, function() {
+//       //   socketio.in('clients').emit("ui update", brightness);
+//       // });
+//   });
+// });
+
+  // SOCKET CONNECTIONS
+socketio.on('connection', function(socket){
   console.info('New client connected ('+ socket.id +').');
 
   socket.join('clients');

@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Alloy</title>
 
-  <link href='https://fonts.googleapis.com/css?family=Raleway:400,300,600,700' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Lato:300,400' rel='stylesheet' type='text/css'>
   <link rel="stylesheet" type="text/css" href="css/style.css">
   <link rel="stylesheet" type="text/css" href="css/rangeslider.css">
 
@@ -17,10 +17,12 @@
 </head>
 
 <body>
+  <h1>Adjust the Brightness</h1>
   <main>
-    <button id="button-up">+</button>
-    <input type="range" min="0" max="100" step="1" value="50" data-orientation="vertical">
-    <button id="button-down">-</button>
+    <button type="submit" id="button-up">+</button>
+    <input id="slider" type="range" min="0" max="100" step="1" value="50" data-orientation="vertical">
+    <button type="submit" id="button-down">-</button>
   </main>
+  <button type="submit" id="button-done">Next</button>
 </body>
 </html>
