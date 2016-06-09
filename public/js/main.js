@@ -11,7 +11,6 @@ $(document).ready(function() {
 			console.log(jsonData);
 
 			// CHART CONFIGURATION
-			console.log("im working every reload.");
 			ctx = $("#resultsChart");
 			var resultsChart = new Chart(ctx, {
 				type: 'horizontalBar',
@@ -112,6 +111,6 @@ socket.on("vote tallied", function(data) {
 
 socket.on("new vote", function(voteData) {
 	if (top.location.pathname === '/results') {
-		location.reload();
+		location.reload(true);
 	}
 });

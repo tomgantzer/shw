@@ -31,22 +31,26 @@ var light = new LifxClient();
 // BOARD SETUP
 var arduinos = [
   {
-    id: "ultrasonic",
+    id: "roof",
     port: "/dev/cu.usbmodem141131"
   },
   {
-    id: "pressure",
+    id: "mat",
     port: "/dev/cu.usbmodem1421"
   },
-  // {
-  //   id: "particle",
-  //   io: new Particle({
-  //     token: "1059f47f854fca3cd19ccb2b050f8f31d0b227e8",
-  //     deviceId: "38001b000447353138383138"
-  //   })
-  // },
   {
-    id: "particle2",
+    id: "range",
+    port: "/dev/cu.usbmodem143231"
+  },
+  {
+    id: "cube",
+    io: new Particle({
+      token: "1059f47f854fca3cd19ccb2b050f8f31d0b227e8",
+      deviceId: "38001b000447353138383138"
+    })
+  },
+  {
+    id: "control-panel",
     io: new Particle({
       token: "1059f47f854fca3cd19ccb2b050f8f31d0b227e8",
       deviceId: "36003a000a47353235303037"
@@ -55,15 +59,16 @@ var arduinos = [
 ];
 var boards = new five.Boards(arduinos);
 
-// CONFIGURATION
+// PROGRAM CONFIGURATION
 var jsonData = {};
 var jsonDataBackup = {};
 var port = 8080;
+
 var brightness = 0;
 var delay = 120;
-
 var tiltThreshold = 0.15;
 
+// AYLA CONFIGURATION
 var aylaEmail = "tom.gantzer@thealloy.com";
 var aylaPass = "Chicago1TG";
 var aylaURL = "https://user.aylanetworks.com/users/sign_in.json";
@@ -82,6 +87,21 @@ var aylaData = {
 var accessToken = "";
 var refreshToken = "";
 
+// CONTROL PANEL CONFIGURATION
+var toggleMat = true;
+var toggleRange = true;
+var togglePIR = false;
+var toggleRangeInside = false;
+var toggleCube = false;
+
+var maxRange = 100;
+var minRange = 0;
+var fadeRange = 120;
+
+var freqRange = 250;
+
+var delayPIR = 200;
+
 // SERVER SETUP
 app.use(logger('dev'));
 app.use(bodyParser.urlencoded({'extended':'true'}));
@@ -91,7 +111,7 @@ app.use(cors());
 app.use(express.static(__dirname + '/public'));
 app.use('/json', express.static(__dirname + '/'));
 
-// set handlebars as the view templating language
+  // set handlebars as the view templating language
 app.engine('.hbs', expressHBS({defaultLayout: 'main', extname: '.hbs'}));
 app.set('view engine', '.hbs');
 app.set('views', __dirname + '/views');
@@ -126,7 +146,7 @@ fs.readFile('votes.json', 'utf8', function(err, data) {
   }
 });
 
-//WORKING POST REQUEST TO GET ACCESS TOKEN FOR AYLA API
+// WORKING POST REQUEST TO GET ACCESS TOKEN FOR AYLA API
 // unirest.post(aylaURL)
 // .headers({'Accept': 'application/json', 'Content-Type': 'application/json'})
 // .send(aylaData)
@@ -139,41 +159,48 @@ fs.readFile('votes.json', 'utf8', function(err, data) {
 //   //unirest.get("" + "?auth_token=" + accessToken);
 // });
 
-// LETS DO THIS!
+// APP PROGRAM
 boards.on("ready", function() {
   console.log("All boards connected.");
   // SENSOR SETUP
-  var proximity = new five.Proximity({
-    board: this.byId("ultrasonic"),
+
+  var roof_range = new five.Proximity({
+    board: this.byId("roof"),
     controller: "HCSR04",
-    pin: 7,
-    freq: delay
+    pin: 3,
+    freq: freqRange
   });
 
-  // var particleProx = new five.Proximity({
-  //   board: this.byId("particle"),
-  //   controller: "HCSR04",
-  //   pin: "D7",
-  //   freq: delay
-  // });
+  var table_range = new five.Proximity({
+    board: this.byId("range"),
+    controller: "HCSR04",
+    pin: 3,
+    freq: freqRange
+  });
 
-  var imu = new five.IMU({
-    board: this.byId("particle"),
+  var roof_pir = new five.Motion({
+    board: this.byId("roof"),
+    pin: 4,
+    freq: 250
+  });
+
+  var cube = new five.IMU({
+    board: this.byId("cube"),
     controller: "MPU6050",
     device: "GY-521",
-    freq: 500
+    freq: 750
   });
 
   var mat = new five.Button({
-    board: this.byId("pressure"),
+    board: this.byId("mat"),
     pin: 2,
     isPullup: true
   });
 
-  var motion = new five.Motion({
-    board: this.byId("ultrasonic"),
-    pin: 4,
-    freq: 250
+  var cp_pot = new five.Sensor({
+    board: this.byId("control-panel"),
+    pin: "A0",
+    freq: 200
   });
 
   // SENSOR LOGIC
@@ -184,61 +211,75 @@ boards.on("ready", function() {
       console.log(data);
     });
 
-    // proximity.on("data", function() {
-    //   if (this.cm < 100) {
-    //     brightness = Math.min(Math.max(parseInt(this.cm), 0), 100);
-    //     brightness = 100 - brightness;
-    //     console.log("Range:  " + brightness);
-    //     bulb.color(0, 100, brightness, 3500, delay, function() {
-    //       socketio.in('clients').emit("ui update", brightness);
-    //     });
-    //   }
-    // });
-
-    mat.on("down", function(value) {
-      bulb.getState( function(error, data) {
-        var powerState = data.power;
-
-        if (powerState) {
-          console.log("bulb off");
-          bulb.off();
-        }
-        else {
-          console.log("bulb on");
-          bulb.on();
-        }
-      });
+    // CONTROL PANEL BUTTONS
+    cp_pot.scale(0,5000).on("change", function() {
+      delayPIR = this.value;
+      console.log(delayPIR);
     });
 
-    // motion.on("calibrated", function() {
-    //   console.log("calibrated");
-    // });
-    //
-    // motion.on("motionstart", function() {
-    //   console.log("motion start");
-    //   bulb.on();
-    // });
-    //
-    // motion.on("motionend", function() {
-    //   console.log("motion end");
-    //   bulb.off();
-    // });
+    // REST OF PROGRAM
+    roof_range.on("data", function() {
+      if (toggleRange) {
+        if (this.cm < maxRange) {
+          brightness = Math.min(Math.max(parseInt(this.cm), 0), maxRange);
+          brightness = 100 - brightness;
+          console.log("Outside Range: " + brightness);
+          bulb.color(0, 100, brightness, 3500, fadeRange, function() {
+            socketio.emit("ui update", brightness);
+          });
+        }
+      }
+    });
 
-    // tilt1.on("change", function() {
-    //   console.log("1 TILTED!!!!");
-    // });
-    // tilt2.on("change", function() {
-    //   console.log("2 TILTED!!!!");
-    // });
-    // tilt3.on("change", function() {
-    //   console.log("3 TILTED!!!!");
-    // });
-    // tilt4.on("change", function() {
-    //   console.log("4 TILTED!!!!");
-    // });
+    table_range.on("data", function() {
+      if (toggleRangeInside) {
+        if (this.cm < 100) {
+          brightness = Math.min(Math.max(parseInt(this.cm), 0), 100);
+          brightness = 100 - brightness;
+          console.log("Inside Range: " + brightness);
+          bulb.color(0, 100, brightness, 3500, 250, function() {
+            socketio.emit("ui update", brightness);
+          });
+        }
+      }
+    });
 
-    imu.on("data", function() {
+    mat.on("down", function() {
+      if (toggleMat) {
+        bulb.getState( function(error, data) {
+          var powerState = data.power;
+
+          if (powerState) {
+            console.log("bulb off");
+            bulb.off();
+          }
+          else {
+            console.log("bulb on");
+            bulb.on();
+          }
+        });
+      }
+    });
+
+    roof_pir.on("motionstart", function() {
+      console.log("motion start");
+      if (togglePIR) {
+        bulb.on();
+      }
+    });
+
+    roof_pir.on("motionend", function() {
+      console.log("motion end - no delay");
+      if (togglePIR) {
+        setInterval(function () {
+          bulb.off();
+        }, delayPIR);
+      }
+    });
+
+    cube.on("data", function() {
       // LOGIC TABLE
+      if (toggleCube) {
         if (getCubeSide(this.accelerometer.x,this.accelerometer.y,this.accelerometer.z) == "top") {
           console.log("top");
 
@@ -299,18 +340,14 @@ boards.on("ready", function() {
             }
           });
         }
+      }
     });
-
-    // accel.on("orientation", function(data) {
-    //   console.log("orientation", data);
-    // });
   });
 
   light.init();
 });
 
-  // SOCKET CONNECTIONS
-
+// SOCKET CONNECTIONS
 socketio.on('connection', function(socket){
   console.info('New client connected ('+ socket.id +').');
 
@@ -343,14 +380,9 @@ socketio.on('connection', function(socket){
 
 // HELPER FUNCTIONS
 
-// function between(x, min, max) {
-//   return x >= min && x <= max;
-// }
-
 Number.prototype.between = function(a, b) {
-  var min = Math.min(a, b),
-    max = Math.max(a, b);
-
+  var min = Math.min(a, b);
+  var max = Math.max(a, b);
   return this > min && this < max;
 };
 
