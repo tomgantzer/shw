@@ -1,0 +1,15 @@
+@import "_reset.css";
+
+/*--------------------------*/
+/*      RESULTS PAGE        */
+/*--------------------------*/
+
+h1 {
+  font-weight: 300;
+  font-size: 4vh;
+  color: #8c8c8c;
+}
+
+canvas {
+  padding: 4vh;
+}

@@ -1,0 +1,56 @@
+@import "_reset.css";
+
+/*--------------------------*/
+/*       VOTE PAGE          */
+/*--------------------------*/
+
+main {
+  margin-bottom: auto;
+  height: 40vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+}
+
+h1 {
+  margin-bottom: auto;
+  font-weight: 300;
+  font-size: 4vh;
+  color: #8c8c8c;
+}
+
+button {
+  width: 30vh;
+  height: 8vh;
+  background: #fff;
+  border-top: 2px solid #ddd;
+  box-shadow: 0px 2px 8px #ddd;
+  color: #8c8c8c;
+  cursor: pointer;
+  display: inline-block;
+  font-size: 3vh;
+  font-weight: 300;
+  line-height: 20px;
+  padding: 10px;
+  transition: all 60ms ease-out;
+  vertical-align: top;
+}
+
+button#button-up, button#button-down {
+  width: 14vh;
+  height: 14vh;
+  padding: 10px 0px 14px;
+  font-size: 8vh;
+  font-weight: 300;
+  border-radius: 50%;
+}
+
+button:focus {
+  outline: 0;
+}
+
+button:active {
+  background: #f2f2f2;
+  box-shadow: 0px 3px 4px #aaa inset, 0px 2px 3px #fff;
+}

@@ -1,0 +1,63 @@
+@import "_reset.css";
+
+/*--------------------------*/
+/*    BRIGHTNESS PAGE       */
+/*--------------------------*/
+
+main {
+  height: 80vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+}
+
+h1 {
+  font-weight: 300;
+  font-size: 4vh;
+  color: #8c8c8c;
+}
+
+button {
+  width: 14vh;
+  height: 14vh;
+  background: #fff;
+  border-top: 2px solid #ddd;
+  box-shadow: 0px 2px 8px #ddd;
+  color: #8c8c8c;
+  cursor: pointer;
+  display: inline-block;
+  font-size: 3vh;
+  font-weight: 300;
+  line-height: 20px;
+  padding: 10px;
+  transition: all 60ms ease-out;
+  vertical-align: top;
+}
+
+button.circle {
+  width: 14vh;
+  height: 14vh;
+  padding: 10px 0px 14px;
+  font-size: 8vh;
+  font-weight: 300;
+  border-radius: 50%;
+}
+
+button.sml {
+  font-size: 8vh;
+}
+
+button.lrg {
+  width: 30vh;
+  height: 8vh;
+}
+
+button:focus {
+  outline: 0;
+}
+
+button:active {
+  background: #f2f2f2;
+  box-shadow: 0px 3px 4px #aaa inset, 0px 2px 3px #fff;
+}
