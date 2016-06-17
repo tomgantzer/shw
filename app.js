@@ -41,7 +41,7 @@ var arduinos = [
   {
     id: "cube",
     io: new Particle({
-      token: "1059f47f854fca3cd19ccb2b050f8f31d0b227e8",
+      token: "b4a3882a4481164fc1b25a5be44aa7c6ec4f0d8c",
       deviceId: "38001b000447353138383138"
     })
   },
