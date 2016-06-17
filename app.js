@@ -32,29 +32,26 @@ var light = new LifxClient();
 var arduinos = [
   {
     id: "roof",
-    port: "/dev/cu.usbmodem141131"
+    port: "/dev/cu.usbmodem14111"
   },
   {
     id: "mat",
-    port: "/dev/cu.usbmodem1421"
+    port: "/dev/cu.usbmodem14121"
   },
   {
     id: "range",
-    port: "/dev/cu.usbmodem143231"
+    port: "/dev/cu.usbmodem14131"
   },
-  {
-    id: "cube",
-    io: new Particle({
-      token: "1059f47f854fca3cd19ccb2b050f8f31d0b227e8",
-      deviceId: "38001b000447353138383138"
-    })
-  },
+  // {
+  //   id: "cube",
+  //   io: new Particle({
+  //     token: "1059f47f854fca3cd19ccb2b050f8f31d0b227e8",
+  //     deviceId: "38001b000447353138383138"
+  //   })
+  // },
   {
     id: "control-panel",
-    io: new Particle({
-      token: "1059f47f854fca3cd19ccb2b050f8f31d0b227e8",
-      deviceId: "36003a000a47353235303037"
-    })
+    port: "/dev/cu.usbmodem14141"
   }
 ];
 var boards = new five.Boards(arduinos);
@@ -65,42 +62,22 @@ var jsonDataBackup = {};
 var port = 8080;
 
 var brightness = 0;
-var delay = 120;
 var tiltThreshold = 0.15;
 
-// AYLA CONFIGURATION
-var aylaEmail = "tom.gantzer@thealloy.com";
-var aylaPass = "Chicago1TG";
-var aylaURL = "https://user.aylanetworks.com/users/sign_in.json";
-var aylaAppID = "the-alloy-id";
-var aylaAppSecret = "the-alloy-PUCo41iF4zAEBqwHCbAsnLCQHZk";
-var aylaData = {
-  "user": {
-    "email": aylaEmail,
-    "password": aylaPass,
-    "application": {
-      "app_id": aylaAppID,
-      "app_secret": aylaAppSecret
-    }
-  }
-};
-var accessToken = "";
-var refreshToken = "";
-
 // CONTROL PANEL CONFIGURATION
-var toggleMat = true;
-var toggleRange = true;
+var toggleMat = false;
+var toggleRange = false;
 var togglePIR = false;
 var toggleRangeInside = false;
 var toggleCube = false;
+var toggleLock = false;
 
-var maxRange = 100;
-var minRange = 0;
-var fadeRange = 120;
+var experiment2 = false;
 
-var freqRange = 250;
+var ultrasonicRange = 20;
 
-var delayPIR = 200;
+var delayAll = 0; //ben added - for All Delay pot
+var delayPIR = 2500; //ben added - for PIR Delay pot
 
 // SERVER SETUP
 app.use(logger('dev'));
@@ -146,19 +123,6 @@ fs.readFile('votes.json', 'utf8', function(err, data) {
   }
 });
 
-// WORKING POST REQUEST TO GET ACCESS TOKEN FOR AYLA API
-// unirest.post(aylaURL)
-// .headers({'Accept': 'application/json', 'Content-Type': 'application/json'})
-// .send(aylaData)
-// .end(function (response) {
-//   console.log(response.body);
-//
-//   accessToken = response.body.access_token;
-//   refreshToken = response.body.refresh_token;
-//
-//   //unirest.get("" + "?auth_token=" + accessToken);
-// });
-
 // APP PROGRAM
 boards.on("ready", function() {
   console.log("All boards connected.");
@@ -168,19 +132,19 @@ boards.on("ready", function() {
     board: this.byId("roof"),
     controller: "HCSR04",
     pin: 3,
-    freq: freqRange
+    freq: 50
   });
 
   var table_range = new five.Proximity({
     board: this.byId("range"),
     controller: "HCSR04",
-    pin: 3,
-    freq: freqRange
+    pin: 7,
+    freq: 250
   });
 
   var roof_pir = new five.Motion({
     board: this.byId("roof"),
-    pin: 4,
+    pin: 2,
     freq: 250
   });
 
@@ -188,7 +152,7 @@ boards.on("ready", function() {
     board: this.byId("cube"),
     controller: "MPU6050",
     device: "GY-521",
-    freq: 750
+    freq: 500
   });
 
   var mat = new five.Button({
@@ -197,47 +161,192 @@ boards.on("ready", function() {
     isPullup: true
   });
 
-  var cp_pot = new five.Sensor({
+  var cp_pot_ultrasonic = new five.Sensor({ //ben added - not connected yet
+    board: this.byId("control-panel"),
+    pin: "A2",
+    freq: 100
+  });
+
+  var cp_pot_pir = new five.Sensor({ //ben added
+    board: this.byId("control-panel"),
+    pin: "A1",
+    freq: 250
+  });
+
+  var cp_pot_allDelay = new five.Sensor({ //ben added
     board: this.byId("control-panel"),
     pin: "A0",
-    freq: 200
+    freq: 250
+  });
+
+  var cp_switch_ultrasonic = new five.Switch({
+    board: this.byId("control-panel"),
+    type: "NO",
+    pin: 5,
+    freq: 1000
+  });
+
+  var cp_switch_mat = new five.Switch({
+    board: this.byId("control-panel"),
+    type: "NO",
+    pin: 8,
+    freq: 1000
+  });
+
+  var cp_switch_pir = new five.Switch({
+    board: this.byId("control-panel"),
+    type: "NO",
+    pin: 7,
+    freq: 1000
+  });
+
+  var cp_switch_lock = new five.Switch({ //ben added
+    board: this.byId("control-panel"),
+    type: "NO",
+    pin: 12,
+    freq: 1000
+  });
+
+  var cp_button_reset = new five.Button({
+    board: this.byId("control-panel"),
+    pin: 4
   });
 
   // SENSOR LOGIC
   light.on('light-new', function(bulb) {
+    ////////////////////////////////////
+    // LET'S GET THIS SHOW ON THE ROAD
+    ////////////////////////////////////
 
-    bulb.getState(function(error, data){
-      console.log("Lightbulb State:");
-      console.log(data);
+    bulb.getState(function(error, data) {
+      console.log(data.label + " is ready.");
+      bulb.color(0, 100, 0, 3500, 0);
+      bulb.on();
+
+      ////////////////////////////////////
+      // SET INITIAL CONTROL PANEL STATES
+      ////////////////////////////////////
+
+      if (cp_switch_ultrasonic.isOpen) {
+        console.log("Ultrasonic Toggle TRUE");
+        toggleRange = true;
+      }
+      else {
+        console.log("Ultrasonic Toggle FALSE");
+        toggelRange = false;
+      };
+
+      if (cp_switch_pir.isOpen) {
+        console.log("PIR Toggle TRUE");
+        togglePIR = true;
+      }
+      else {
+        console.log("PIR Toggle FALSE");
+        togglePIR = false;
+      };
+
+      if (cp_switch_mat.isOpen) {
+        console.log("Mat Toggle TRUE");
+        toggleMat = true;
+      }
+      else {
+        console.log("Mat Toggle FALSE");
+        toggleMat = false;
+      };
+
+      if (cp_switch_lock.isOpen) { //ben added - for lock switch
+        console.log("Lock Toggle TRUE");
+        toggleLock = true;
+      }
+      else {
+        console.log("Lock Toggle FALSE");
+        toggleLock = false;
+      };
+
     });
 
     // CONTROL PANEL BUTTONS
-    cp_pot.scale(0,5000).on("change", function() {
-      delayPIR = this.value;
-      console.log(delayPIR);
+    if (!toggleLock) {
+      cp_pot_ultrasonic.scale(0,100).on("data", function() { //ben added - pot not connected
+        if (toggleRange) {
+          ultrasonicRange = parseInt(100 - this.value);
+          console.log("Ultrasonic Threshold " + ultrasonicRange);
+        }
+      });
+
+      cp_pot_pir.scale(100,5000).on("data", function() { //ben added
+        if (togglePIR) {
+          delayPIR = parseInt(this.value);
+          console.log("PIR Delay: " + delayPIR);
+        }
+      })
+
+      cp_pot_allDelay.scale(0,2500).on("data", function() { //ben added
+        delayAll = parseInt(this.value);
+        console.log("Global Delay: " + delayAll);
+      })
+
+      cp_switch_ultrasonic.on("open", function() {
+        console.log("UltrasonicToggle TRUE");
+        toggleRange = true;
+      });
+      cp_switch_ultrasonic.on("closed", function() {
+        console.log("Ultrasonic Toggle FALSE");
+        toggleRange = false;
+      });
+
+      cp_switch_mat.on("open", function() {
+        console.log("Mat Toggle TRUE");
+        toggleMat = true;
+      });
+      cp_switch_mat.on("closed", function() {
+        console.log("Mat Toggle FALSE");
+        toggleMat = false;
+      });
+
+      cp_switch_pir.on("open", function() {
+        console.log("PIR Toggle TRUE");
+        togglePIR = true;
+      });
+      cp_switch_pir.on("closed", function() {
+        console.log("PIR Toggle FALSE");
+        togglePIR = false;
+      });
+
+      cp_button_reset.on("down", function() {
+        console.log("reset pressed");
+        bulb.color(0, 100, 0, 3500, delayAll);
+      });
+    }
+
+    cp_switch_lock.on("open", function() { //ben added - for lock switch
+      console.log("Lock Toggle TRUE");
+      toggleLock = true;
+    });
+    cp_switch_lock.on("closed", function() {
+      console.log("Lock Toggle FALSE");
+      toggleLock = false;
     });
 
     // REST OF PROGRAM
     roof_range.on("data", function() {
       if (toggleRange) {
-        if (this.cm < maxRange) {
-          brightness = Math.min(Math.max(parseInt(this.cm), 0), maxRange);
-          brightness = 100 - brightness;
-          console.log("Outside Range: " + brightness);
-          bulb.color(0, 100, brightness, 3500, fadeRange, function() {
-            socketio.emit("ui update", brightness);
-          });
+        console.log("roof range: " + this.cm);
+        if ((this.cm <= ultrasonicRange)) {
+          bulb.color(0, 100, 100, 3500, delayAll);
         }
       }
     });
 
     table_range.on("data", function() {
       if (toggleRangeInside) {
+        if (this.cm.between(0,100)) {
+          console.log("Roof Range " + this.cm);
+        }
         if (this.cm < 100) {
           brightness = Math.min(Math.max(parseInt(this.cm), 0), 100);
           brightness = 100 - brightness;
-          console.log("Inside Range: " + brightness);
-          bulb.color(0, 100, brightness, 3500, 250, function() {
+          bulb.color(0, 100, brightness, 3500, delayAll, function() {
             socketio.emit("ui update", brightness);
           });
         }
@@ -249,30 +358,32 @@ boards.on("ready", function() {
         bulb.getState( function(error, data) {
           var powerState = data.power;
 
-          if (powerState) {
-            console.log("bulb off");
-            bulb.off();
-          }
-          else {
+          if (!powerState) {
             console.log("bulb on");
-            bulb.on();
+            bulb.color(0, 100, 100, 3500, delayAll);
           }
         });
       }
     });
 
+    roof_pir.on("calibrated", function(){ //ben added - maybe this helps PIR sensitivity?
+      console.log("PIR calibrated")
+    })
+
     roof_pir.on("motionstart", function() {
-      console.log("motion start");
       if (togglePIR) {
-        bulb.on();
+        console.log("motion start");
+        window.clearTimeout(pirTimer);
+        bulb.color(0, 100, 100, 3500, delayAll);
       }
     });
 
     roof_pir.on("motionend", function() {
       console.log("motion end - no delay");
       if (togglePIR) {
-        setInterval(function () {
-          bulb.off();
+        var pirTimer = window.setTimeout(function () {
+          console.log("real motion end");
+          bulb.color(0, 100, 0, 3500, delayAll);
         }, delayPIR);
       }
     });
@@ -285,7 +396,7 @@ boards.on("ready", function() {
 
           bulb.getState( function(error, data) {
             if (data.power) {
-              bulb.color(0, 100, 100, 3500, delay);
+              bulb.color(0, 100, 100, 3500, delayAll);
               console.log("brightness: " + data.color.brightness);
             }
           });
@@ -295,7 +406,7 @@ boards.on("ready", function() {
 
           bulb.getState( function(error, data) {
             if (data.power) {
-              bulb.color(0, 100, 0, 3500, delay);
+              bulb.color(0, 100, 0, 3500, delayAll);
               console.log("brightness: " + data.color.brightness);
             }
           });
@@ -305,7 +416,7 @@ boards.on("ready", function() {
 
           bulb.getState( function(error, data) {
             if (data.power) {
-              bulb.color(0, 100, 40, 3500, delay);
+              bulb.color(0, 100, 40, 3500, delayAll);
               console.log("brightness: " + data.color.brightness);
             }
           });
@@ -315,7 +426,7 @@ boards.on("ready", function() {
 
           bulb.getState( function(error, data) {
             if (data.power) {
-              bulb.color(0, 100, 80, 3500, delay);
+              bulb.color(0, 100, 80, 3500, delayAll);
               console.log("brightness: " + data.color.brightness);
             }
           });
@@ -325,7 +436,7 @@ boards.on("ready", function() {
 
           bulb.getState( function(error, data) {
             if (data.power) {
-              bulb.color(0, 100, 20, 3500, delay);
+              bulb.color(0, 100, 20, 3500, delayAll);
               console.log("brightness: " + data.color.brightness);
             }
           });
@@ -335,7 +446,7 @@ boards.on("ready", function() {
 
           bulb.getState( function(error, data) {
             if (data.power) {
-              bulb.color(0, 100, 60, 3500, delay);
+              bulb.color(0, 100, 60, 3500, delayAll);
               console.log("brightness: " + data.color.brightness);
             }
           });
@@ -353,7 +464,7 @@ socketio.on('connection', function(socket){
 
   socket.on('brightness change', function(data){
     console.log(data);
-    light.light('d073d5107cb8').color(0, 100, data, 3500, delay);
+    light.light('d073d5107cb8').color(0, 100, data, 3500, delayAll);
   });
 
   socket.on('disconnect', function() {
@@ -421,3 +532,19 @@ function getCubeSide(x,y,z) {
     return false;
   };
 }
+
+function setIntervalSync(func, delay) {
+  var intervalFunction, timeoutId, clear;
+  // Call to clear the interval.
+  clear = function () {
+    clearTimeout(timeoutId);
+  };
+  intervalFunction = function () {
+    func();
+    timeoutId = setTimeout(intervalFunction, delay);
+  }
+  // Delay start.
+  timeoutId = setTimeout(intervalFunction, delay);
+  // You should capture the returned function for clearing.
+  return clear;
+};

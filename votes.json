@@ -1,14 +1,14 @@
 {
   "hand": {
-    "votes": 3,
+    "votes": 15,
     "last-vote": null
   },
   "cube": {
-    "votes": 4,
+    "votes": 12,
     "last-vote": null
   },
   "app": {
-    "votes": 3,
+    "votes": 7,
     "last-vote": null
   }
 }

@@ -4,6 +4,10 @@
 /*      RESULTS PAGE        */
 /*--------------------------*/
 
+body {
+  justify-content: space-around;
+}
+
 h1 {
   font-weight: 300;
   font-size: 4vh;
@@ -11,5 +15,6 @@ h1 {
 }
 
 canvas {
+  max-height: 80vh;
   padding: 4vh;
 }

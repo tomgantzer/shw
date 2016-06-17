@@ -1,5 +1,4 @@
 var socket = io();
-var jsonData = {};
 var ctx;
 
 $(document).ready(function() {
@@ -7,39 +6,38 @@ $(document).ready(function() {
 	if (top.location.pathname === '/results') {
 
 		$.getJSON("/json/votes.json").done(function(data) {
-      jsonData = data;
-			console.log(jsonData);
+			console.log(data);
 
 			// CHART CONFIGURATION
 			ctx = $("#resultsChart");
 			var resultsChart = new Chart(ctx, {
 				type: 'horizontalBar',
 				data: {
-						labels: ["Hand", "Cube", "Mobile App"],
-						datasets: [{
-								label: 0,
-								data: [jsonData.hand.votes, jsonData.cube.votes, jsonData.app.votes],
-								backgroundColor: [
-										'rgba(255, 99, 132, 0.2)',
-										'rgba(54, 162, 235, 0.2)',
-										'rgba(255, 206, 86, 0.2)'
-								],
-								borderColor: [
-										'rgba(255,99,132,1)',
-										'rgba(54, 162, 235, 1)',
-										'rgba(255, 206, 86, 1)'
-								],
-								borderWidth: 1
-						}]
+					labels: ["Hand", "Cube", "Mobile App"],
+					datasets: [{
+						label: 0,
+						data: [
+							data.hand.votes,
+							data.cube.votes,
+							data.app.votes
+						],
+						backgroundColor: [
+							'rgba(255, 99, 132, 0.2)',
+							'rgba(54, 162, 235, 0.2)',
+							'rgba(255, 206, 86, 0.2)'
+						]
+					}]
 				},
 				options: {
-						scales: {
-								yAxes: [{
-										ticks: {
-												beginAtZero:true
-										}
-								}]
-						}
+					scales: {
+	          xAxes: [{
+              type: 'linear',
+              position: 'bottom',
+							ticks: {
+								beginAtZero: true
+							}
+	          }]
+		      }
 				}
 			});
     });
