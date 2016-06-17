@@ -24,34 +24,30 @@ var Particle = require('particle-io');
 var LifxClient = require('node-lifx').Client;
 var light = new LifxClient();
 
-  // database storage
-// var mongoose = require('mongoose');
-// var Schema = mongoose.Schema;
-
 // BOARD SETUP
 var arduinos = [
   {
     id: "roof",
-    port: "/dev/cu.usbmodem14111"
+    port: "/dev/ttyACM2"
   },
   {
     id: "mat",
-    port: "/dev/cu.usbmodem14121"
+    port: "/dev/ttyACM1"
   },
   {
     id: "range",
-    port: "/dev/cu.usbmodem14131"
+    port: "/dev/ttyACM0"
   },
-  // {
-  //   id: "cube",
-  //   io: new Particle({
-  //     token: "1059f47f854fca3cd19ccb2b050f8f31d0b227e8",
-  //     deviceId: "38001b000447353138383138"
-  //   })
-  // },
+  {
+    id: "cube",
+    io: new Particle({
+      token: "1059f47f854fca3cd19ccb2b050f8f31d0b227e8",
+      deviceId: "38001b000447353138383138"
+    })
+  },
   {
     id: "control-panel",
-    port: "/dev/cu.usbmodem14141"
+    port: "/dev/ttyACM3"
   }
 ];
 var boards = new five.Boards(arduinos);
