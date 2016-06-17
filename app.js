@@ -34,10 +34,10 @@ var arduinos = [
     id: "mat",
     port: "/dev/ttyACM1"
   },
-  {
-    id: "range",
-    port: "/dev/ttyACM0"
-  },
+  // {
+  //   id: "range",
+  //   port: "/dev/ttyACM0"
+  // },
   {
     id: "cube",
     io: new Particle({
